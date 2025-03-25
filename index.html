@@ -50,7 +50,7 @@
             {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"FeedStaked","type":"event"},
             {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"FeedUnstaked","type":"event"},
             {"anonymous":false,"inputs":[],"name":"MiningEnded","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{" brasileiro":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NekoStaked","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NekoStaked","type":"event"},
             {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NekoUnstaked","type":"event"},
             {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},
             {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"string","name":"rewardType","type":"string"}],"name":"RewardsClaimed","type":"event"},
@@ -283,7 +283,7 @@
                     status.textContent += getMessage("nekoPending") + web3.utils.fromWei(nekoRewards.toString(), "ether") + " NEKO\n";
 
                     // Claim FEED rewards
-                    if (feedRewards > 0) {
+                    if (feedRewards > 0n) {
                         status.textContent += getMessage("claimingFeed") + account.address + "...\n";
                         try {
                             const tx = await contract.methods.claimFeedRewards().send({
@@ -302,7 +302,7 @@
                     }
 
                     // Claim NEKO rewards
-                    if (nekoRewards > 0) {
+                    if (nekoRewards > 0n) {
                         status.textContent += getMessage("claimingNeko") + account.address + "...\n";
                         try {
                             const tx = await contract.methods.claimNekoRewards().send({
@@ -320,16 +320,11 @@
                         status.textContent += getMessage("noRewards") + account.address + " (NEKO)\n";
                     }
 
-                    // Stake NEKO (automatic, integer multiples of 10,000)
+                    // Stake NEKO (automatic, integer multiples of 10,000, no approve needed)
                     if (nekoBalance >= MIN_STAKE_UNIT) {
                         const stakeAmount = (nekoBalance / MIN_STAKE_UNIT) * MIN_STAKE_UNIT; // Floor to nearest 10,000 NEKO
                         status.textContent += getMessage("stakingNeko") + web3.utils.fromWei(stakeAmount.toString(), "ether") + getMessage("nekoFor") + account.address + "...\n";
                         try {
-                            await contract.methods.approve(CONTRACT_ADDRESS, stakeAmount.toString()).send({
-                                from: account.address,
-                                gas: gasLimit,
-                                gasPrice: gasPriceWei
-                            });
                             const tx = await contract.methods.stakeNeko(stakeAmount.toString()).send({
                                 from: account.address,
                                 gas: gasLimit,
