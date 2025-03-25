@@ -211,7 +211,7 @@
 
         function getMessage(key) {
             const lang = document.getElementById("language").value;
-            return messages[lang][key];
+            return messages[lang][key] || key; // Fallback to key if message not found
         }
 
         function updateLanguage() {
@@ -252,7 +252,7 @@
                 const networkChainId = await web3.eth.getChainId();
                 status.textContent += getMessage("connectedToChain") + networkChainId + getMessage("expectedChain") + "\n";
                 if (networkChainId !== expectedChainId) {
-                    status WtextContent += getMessage("chainMismatch") + "\n";
+                    status.textContent += getMessage("chainMismatch") + "\n";
                     return null;
                 }
                 return web3;
