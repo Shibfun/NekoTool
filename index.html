@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="title">NekoToken FEED Claim & Stake Tool</title>
+    <title id="title">NekoToken FEED Stake Tool</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         textarea { width: 100%; height: 200px; margin-bottom: 10px; }
@@ -16,7 +16,7 @@
     </style>
 </head>
 <body onload="updateLanguage()">
-    <h1 id="title">NekoToken FEED Claim & Stake Tool</h1>
+    <h1 id="title">NekoToken FEED Stake Tool</h1>
     <div class="settings">
         <label id="labelRpcUrl">Shibarium RPC URL: <input type="text" id="rpcUrl" value="https://www.shibrpc.com"></label>
         <label id="labelChainId">Chain ID: <input type="text" id="chainId" value="109" readonly></label>
@@ -35,19 +35,15 @@
         <label id="labelGasLimit">Gas 限制: <input type="number" id="gasLimit" value="1000000" min="21000"></label>
         <label id="labelProcessInterval">处理间隔 (秒): <input type="number" id="processInterval" value="5" min="1"></label>
     </div>
-    <button id="processButton" onclick="processWallets()">领取 NEKO 并质押 NEKO</button>
     <button id="stakeFeedButton" onclick="stakeFeedWallets()">批量质押 FEED</button>
-    <button id="unstakeFeedButton" onclick="unstakeFeedWallets()">批量取消质押 FEED</button>
-    <button id="checkBalanceButton" onclick="checkBalances()">检查余额</button>
     <div id="status">状态: 准备就绪</div>
 
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
     <script>
         const NEKO_CONTRACT_ADDRESS = "0x63A67329f761517570345eE86f791F74f9DC5461";
         const FEED_CONTRACT_ADDRESS = "0xe9Cb2D7ADC24Fc59FE00D6C0A0669BDF16805Fe0";
-        const MIN_STAKE_UNIT = BigInt(10000 * 10**18);
         const FEED_STAKE_AMOUNT = BigInt(10000000000 * 10**18);
-        const MAX_UINT256 = "115792089237316195423570985008687907853269984665640564039457584007913129639935"; // type(uint256).max
+        const MAX_UINT256 = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
         const NEKO_CONTRACT_ABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"FeedStaked","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"FeedUnstaked","type":"event"},{"anonymous":false,"inputs":[],"name":"MiningEnded","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NekoStaked","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NekoUnstaked","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"string","name":"rewardType","type":"string"}],"name":"RewardsClaimed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"claimFeedRewards","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"claimNekoRewards","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"subtractedValue","type":"uint256"}],"name":"decreaseAllowance","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getFeedPendingRewards","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getFeedStakeInfo","outputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"uint256","name":"lastBlock","type":"uint256"},{"internalType":"uint256","name":"reward","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getNekoPendingRewards","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getNekoStakeInfo","outputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"uint256","name":"lastBlock","type":"uint256"},{"internalType":"uint256","name":"reward","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"addedValue","type":"uint256"}],"name":"increaseAllowance","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"stakeNeko","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"stakeFeed","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"unstakeFeed","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"unstakeNeko","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"feedUserInfo","outputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"bool","name":"isStaked","type":"bool"},{"internalType":"uint256","name":"lastRewardBlock","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nekoUserInfo","outputs":[{"internalType":"uint256","name":"principal","type":"uint256"},{"internalType":"uint256","name":"lastRewardBlock","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalFeedStaked","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalNekoStaked","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
         const FEED_CONTRACT_ABI = [
@@ -82,16 +78,6 @@
             },
             {
                 "inputs": [
-                    { "internalType": "address", "name": "to", "type": "address" },
-                    { "internalType": "uint256", "name": "amount", "type": "uint256" }
-                ],
-                "name": "transfer",
-                "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
                     { "internalType": "address", "name": "from", "type": "address" },
                     { "internalType": "address", "name": "to", "type": "address" },
                     { "internalType": "uint256", "name": "amount", "type": "uint256" }
@@ -105,7 +91,7 @@
 
         const messages = {
             en: {
-                title: "NekoToken FEED Claim & Stake Tool",
+                title: "NekoToken FEED Stake Tool",
                 labelRpcUrl: "Shibarium RPC URL: ",
                 labelChainId: "Chain ID: ",
                 labelNetworkName: "Network Name: ",
@@ -117,10 +103,7 @@
                 labelGasPrice: "Gas Price (Gwei): ",
                 labelGasLimit: "Gas Limit: ",
                 labelProcessInterval: "Process Interval (seconds): ",
-                processButton: "Claim NEKO & Stake NEKO",
                 stakeFeedButton: "Batch Stake FEED",
-                unstakeFeedButton: "Batch Unstake FEED",
-                checkBalanceButton: "Check Balances",
                 statusStarting: "Status: Starting...",
                 statusReady: "Status: Ready",
                 testingRPC: "Testing RPC connection...",
@@ -133,42 +116,28 @@
                 invalidGasLimit: "Error: Invalid Gas Limit (minimum 21000).",
                 invalidInterval: "Error: Invalid Process Interval (minimum 1 second).",
                 processingWallet: "Processing wallet ",
-                balance: "NEKO Balance: ",
                 feedBalance: "FEED Balance: ",
-                feedPending: "FEED Pending Rewards: ",
-                nekoPending: "NEKO Pending Rewards: ",
-                claimingFeed: "Claiming FEED rewards for ",
-                stakingNeko: "Staking ",
-                nekoFor: " NEKO for ",
                 approvingFeed: "Approving FEED for ",
                 waitingApproval: "Waiting for approval confirmation for ",
                 stakingFeed: "Staking FEED for ",
-                unstakingFeed: "Unstaking FEED for ",
                 lowBalanceWarning: "Warning: Wallet ",
                 hasLowBalance: " has low BONE balance (",
                 mayNotCoverGas: "), may not cover Gas fees.",
                 insufficientFeedBalance: "Error: Insufficient FEED balance for staking: ",
                 alreadyStaked: "Error: FEED already staked for ",
-                notStaked: "Error: FEED not staked for ",
-                claimSuccess: "Claim successful! Tx: ",
                 approveSuccess: "Approve successful! Tx: ",
                 approveTimeout: "Error: Approval confirmation timeout for ",
                 stakeSuccess: "Stake successful! Tx: ",
-                unstakeSuccess: "Unstake successful! Tx: ",
-                noRewards: "No FEED rewards to claim for ",
-                insufficientBalance: "Error: Insufficient NEKO balance for staking: ",
                 errorProcessing: "Error processing ",
                 errorMessage: ": ",
                 allProcessed: "All wallets processed. Done!",
                 generalError: "Error: ",
                 insufficientAllowance: "Error: Insufficient FEED allowance: ",
                 requiredAllowance: ", required: ",
-                transactionFailed: "Transaction failed with hash: ",
-                testingTransferFrom: "Testing FEED.transferFrom for ",
-                transferFromFailed: "FEED.transferFrom simulation failed: "
+                transactionFailed: "Transaction failed with hash: "
             },
             zh: {
-                title: "NekoToken FEED 领取与质押工具",
+                title: "NekoToken FEED 质押工具",
                 labelRpcUrl: "Shibarium RPC 地址: ",
                 labelChainId: "链 ID: ",
                 labelNetworkName: "网络名称: ",
@@ -180,10 +149,7 @@
                 labelGasPrice: "Gas 价格 (Gwei): ",
                 labelGasLimit: "Gas 限制: ",
                 labelProcessInterval: "处理间隔 (秒): ",
-                processButton: "领取 NEKO 并质押 NEKO",
                 stakeFeedButton: "批量质押 FEED",
-                unstakeFeedButton: "批量取消质押 FEED",
-                checkBalanceButton: "检查余额",
                 statusStarting: "状态: 正在启动...",
                 statusReady: "状态: 准备就绪",
                 testingRPC: "测试 RPC 连接...",
@@ -196,39 +162,25 @@
                 invalidGasLimit: "错误: 无效的 Gas 限制 (最小 21000)。",
                 invalidInterval: "错误: 无效的处理间隔 (最小 1 秒)。",
                 processingWallet: "正在处理钱包 ",
-                balance: "NEKO 余额: ",
                 feedBalance: "FEED 余额: ",
-                feedPending: "FEED 待领奖励: ",
-                nekoPending: "NEKO 待领奖励: ",
-                claimingFeed: "为以下地址领取 FEED 奖励 ",
-                stakingNeko: "为以下地址质押 ",
-                nekoFor: " NEKO ",
                 approvingFeed: "为以下地址批准 FEED ",
                 waitingApproval: "等待批准确认 ",
                 stakingFeed: "为以下地址质押 FEED ",
-                unstakingFeed: "为以下地址取消质押 FEED ",
                 lowBalanceWarning: "警告: 钱包 ",
                 hasLowBalance: " 的 BONE 余额低 (",
                 mayNotCoverGas: ")，可能无法支付 Gas 费用。",
                 insufficientFeedBalance: "错误: FEED 余额不足以质押: ",
                 alreadyStaked: "错误: FEED 已质押 ",
-                notStaked: "错误: FEED 未质押 ",
-                claimSuccess: "领取成功! 交易: ",
                 approveSuccess: "批准成功! 交易: ",
                 approveTimeout: "错误: 批准确认超时 ",
                 stakeSuccess: "质押成功! 交易: ",
-                unstakeSuccess: "取消质押成功! 交易: ",
-                noRewards: "没有可领取的 FEED 奖励 ",
-                insufficientBalance: "错误: NEKO 余额不足以质押: ",
                 errorProcessing: "处理时出错 ",
                 errorMessage: ": ",
                 allProcessed: "所有钱包处理完成。完成!",
                 generalError: "错误: ",
                 insufficientAllowance: "错误: FEED 授权金额不足: ",
                 requiredAllowance: "，需要: ",
-                transactionFailed: "交易失败，哈希: ",
-                testingTransferFrom: "测试 FEED.transferFrom 为 ",
-                transferFromFailed: "FEED.transferFrom 模拟失败: "
+                transactionFailed: "交易失败，哈希: "
             }
         };
 
@@ -249,10 +201,7 @@
             document.getElementById("labelGasPrice").childNodes[0].textContent = getMessage("labelGasPrice");
             document.getElementById("labelGasLimit").childNodes[0].textContent = getMessage("labelGasLimit");
             document.getElementById("labelProcessInterval").childNodes[0].textContent = getMessage("labelProcessInterval");
-            document.getElementById("processButton").textContent = getMessage("processButton");
             document.getElementById("stakeFeedButton").textContent = getMessage("stakeFeedButton");
-            document.getElementById("unstakeFeedButton").textContent = getMessage("unstakeFeedButton");
-            document.getElementById("checkBalanceButton").textContent = getMessage("checkBalanceButton");
             document.getElementById("status").textContent = getMessage("statusReady");
         }
 
@@ -279,99 +228,6 @@
             } catch (error) {
                 status.textContent += getMessage("rpcError") + error.message + "\n";
                 return null;
-            }
-        }
-
-        async function processWallets() {
-            const status = document.getElementById("status");
-            status.textContent = getMessage("statusStarting") + "\n";
-
-            const web3 = await initializeWeb3();
-            if (!web3) return;
-
-            const nekoContract = new web3.eth.Contract(NEKO_CONTRACT_ABI, NEKO_CONTRACT_ADDRESS);
-            const privateKeys = document.getElementById("privateKeys").value.trim().split("\n").filter(key => key.length > 0);
-            if (privateKeys.length < 1) {
-                status.textContent += getMessage("noPrivateKeys") + "\n";
-                return;
-            }
-
-            const gasPriceGwei = parseFloat(document.getElementById("gasPrice").value);
-            const gasLimit = parseInt(document.getElementById("gasLimit").value);
-            const processInterval = parseInt(document.getElementById("processInterval").value) * 1000;
-
-            if (isNaN(gasPriceGwei) || gasPriceGwei <= 0) {
-                status.textContent += getMessage("invalidGasPrice") + "\n";
-                return;
-            }
-            if (isNaN(gasLimit) || gasLimit < 21000) {
-                status.textContent += getMessage("invalidGasLimit") + "\n";
-                return;
-            }
-            if (isNaN(processInterval) || processInterval < 1000) {
-                status.textContent += getMessage("invalidInterval") + "\n";
-                return;
-            }
-
-            const gasPriceWei = web3.utils.toWei(gasPriceGwei.toString(), "gwei");
-
-            try {
-                for (const pk of privateKeys) {
-                    const account = web3.eth.accounts.privateKeyToAccount(pk.trim());
-                    web3.eth.accounts.wallet.add(account);
-                    status.textContent += getMessage("processingWallet") + account.address + "\n";
-
-                    const balance = await web3.eth.getBalance(account.address);
-                    const balanceInBONE = web3.utils.fromWei(balance, "ether");
-                    if (balanceInBONE < 0.01) {
-                        status.textContent += getMessage("lowBalanceWarning") + account.address + getMessage("hasLowBalance") + balanceInBONE + getMessage("mayNotCoverGas") + "\n";
-                    }
-
-                    let nekoBalance = BigInt(await nekoContract.methods.balanceOf(account.address).call());
-                    const feedRewards = BigInt(await nekoContract.methods.getFeedPendingRewards(account.address).call());
-
-                    status.textContent += getMessage("balance") + web3.utils.fromWei(nekoBalance.toString(), "ether") + " NEKO\n";
-                    status.textContent += getMessage("feedPending") + web3.utils.fromWei(feedRewards.toString(), "ether") + " NEKO\n";
-
-                    if (feedRewards > 0n) {
-                        status.textContent += getMessage("claimingFeed") + account.address + "...\n";
-                        try {
-                            const tx = await nekoContract.methods.claimFeedRewards().send({
-                                from: account.address,
-                                gas: gasLimit,
-                                gasPrice: gasPriceWei
-                            });
-                            status.textContent += getMessage("claimSuccess") + tx.transactionHash + "\n";
-                            nekoBalance += feedRewards;
-                        } catch (error) {
-                            status.textContent += getMessage("errorProcessing") + account.address + getMessage("errorMessage") + error.message + "\n";
-                        }
-                        await new Promise(resolve => setTimeout(resolve, processInterval));
-                    } else {
-                        status.textContent += getMessage("noRewards") + account.address + "\n";
-                    }
-
-                    if (nekoBalance >= MIN_STAKE_UNIT) {
-                        const stakeAmount = (nekoBalance / MIN_STAKE_UNIT) * MIN_STAKE_UNIT;
-                        status.textContent += getMessage("stakingNeko") + web3.utils.fromWei(stakeAmount.toString(), "ether") + getMessage("nekoFor") + account.address + "...\n";
-                        try {
-                            const tx = await nekoContract.methods.stakeNeko(stakeAmount.toString()).send({
-                                from: account.address,
-                                gas: gasLimit,
-                                gasPrice: gasPriceWei
-                            });
-                            status.textContent += getMessage("stakeSuccess") + tx.transactionHash + "\n";
-                        } catch (error) {
-                            status.textContent += getMessage("errorProcessing") + account.address + getMessage("errorMessage") + error.message + "\n";
-                        }
-                        await new Promise(resolve => setTimeout(resolve, processInterval));
-                    } else {
-                        status.textContent += getMessage("insufficientBalance") + web3.utils.fromWei(nekoBalance.toString(), "ether") + " NEKO\n";
-                    }
-                }
-                status.textContent += getMessage("allProcessed") + "\n";
-            } catch (error) {
-                status.textContent += getMessage("generalError") + error.message + "\n";
             }
         }
 
@@ -437,87 +293,57 @@
                         continue;
                     }
 
-                    // 检查当前授权金额
-                    let allowance = BigInt(await feedContract.methods.allowance(account.address, NEKO_CONTRACT_ADDRESS).call());
-                    if (allowance < FEED_STAKE_AMOUNT) {
-                        status.textContent += getMessage("approvingFeed") + account.address + "...\n";
-                        try {
-                            const approveTx = await feedContract.methods.approve(NEKO_CONTRACT_ADDRESS, MAX_UINT256).send({
-                                from: account.address,
-                                gas: gasLimit,
-                                gasPrice: gasPriceWei
-                            });
-                            status.textContent += getMessage("approveSuccess") + approveTx.transactionHash + "\n";
+                    status.textContent += getMessage("approvingFeed") + account.address + "...\n";
+                    try {
+                        const approveTx = await feedContract.methods.approve(NEKO_CONTRACT_ADDRESS, MAX_UINT256).send({
+                            from: account.address,
+                            gas: gasLimit,
+                            gasPrice: gasPriceWei
+                        });
+                        status.textContent += getMessage("approveSuccess") + approveTx.transactionHash + "\n";
 
-                            // 等待授权确认，最多等待 120 秒
-                            status.textContent += getMessage("waitingApproval") + account.address + "...\n";
-                            let attempts = 0;
-                            const maxAttempts = 120; // 120 秒
-                            while (attempts < maxAttempts) {
-                                allowance = BigInt(await feedContract.methods.allowance(account.address, NEKO_CONTRACT_ADDRESS).call());
-                                if (allowance >= FEED_STAKE_AMOUNT) {
-                                    break;
-                                }
-                                await new Promise(resolve => setTimeout(resolve, 1000)); // 每秒检查一次
-                                attempts++;
+                        status.textContent += getMessage("waitingApproval") + account.address + "...\n";
+                        let attempts = 0;
+                        const maxAttempts = 180;
+                        let allowance = BigInt(0);
+                        while (attempts < maxAttempts) {
+                            allowance = BigInt(await feedContract.methods.allowance(account.address, NEKO_CONTRACT_ADDRESS).call());
+                            if (allowance >= FEED_STAKE_AMOUNT) {
+                                break;
                             }
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            attempts++;
+                        }
 
-                            if (attempts >= maxAttempts) {
-                                status.textContent += getMessage("approveTimeout") + account.address + "\n";
-                                continue;
-                            }
-                        } catch (error) {
-                            status.textContent += getMessage("errorProcessing") + account.address + getMessage("errorMessage") + error.message + "\n";
+                        if (attempts >= maxAttempts) {
+                            status.textContent += getMessage("approveTimeout") + account.address + "\n";
                             continue;
                         }
+                    } catch (error) {
+                        status.textContent += getMessage("errorProcessing") + account.address + getMessage("errorMessage") + error.message + "\n";
+                        continue;
                     }
 
-                    // 再次检查授权金额
                     const updatedAllowance = BigInt(await feedContract.methods.allowance(account.address, NEKO_CONTRACT_ADDRESS).call());
                     if (updatedAllowance < FEED_STAKE_AMOUNT) {
                         status.textContent += getMessage("insufficientAllowance") + web3.utils.fromWei(updatedAllowance.toString(), "ether") + getMessage("requiredAllowance") + web3.utils.fromWei(FEED_STAKE_AMOUNT.toString(), "ether") + " FEED\n";
                         continue;
                     }
 
-                    // 再次检查 FEED 余额
                     const updatedFeedBalance = BigInt(await feedContract.methods.balanceOf(account.address).call());
                     if (updatedFeedBalance < FEED_STAKE_AMOUNT) {
                         status.textContent += getMessage("insufficientFeedBalance") + web3.utils.fromWei(updatedFeedBalance.toString(), "ether") + " FEED\n";
                         continue;
                     }
 
-                    // 再次检查是否已质押
                     const updatedFeedUserInfo = await nekoContract.methods.feedUserInfo(account.address).call();
                     if (updatedFeedUserInfo.isStaked) {
                         status.textContent += getMessage("alreadyStaked") + account.address + "\n";
                         continue;
                     }
 
-                    // 测试 FEED.transferFrom
-                    status.textContent += getMessage("testingTransferFrom") + account.address + "...\n";
-                    try {
-                        await feedContract.methods.transferFrom(account.address, NEKO_CONTRACT_ADDRESS, FEED_STAKE_AMOUNT.toString()).call({ from: NEKO_CONTRACT_ADDRESS });
-                    } catch (transferError) {
-                        let revertReason = "Unknown revert reason";
-                        if (transferError.message.includes("revert")) {
-                            try {
-                                const errorData = transferError.message.match(/0x[0-9a-fA-F]+/)?.[0] || "";
-                                if (errorData) {
-                                    const decoded = web3.eth.abi.decodeParameter('string', errorData.slice(10));
-                                    revertReason = decoded;
-                                }
-                            } catch (decodeError) {
-                                revertReason = transferError.message;
-                            }
-                        }
-                        status.textContent += getMessage("transferFromFailed") + revertReason + "\n";
-                        continue;
-                    }
-
-                    // 质押 FEED
                     status.textContent += getMessage("stakingFeed") + account.address + "...\n";
                     try {
-                        // 模拟调用以捕获回滚原因
                         try {
                             await nekoContract.methods.stakeFeed().call({ from: account.address });
                         } catch (callError) {
@@ -537,7 +363,6 @@
                             continue;
                         }
 
-                        // 实际调用
                         const stakeTx = await nekoContract.methods.stakeFeed().send({
                             from: account.address,
                             gas: gasLimit,
@@ -563,112 +388,6 @@
                         }
                     }
                     await new Promise(resolve => setTimeout(resolve, processInterval));
-                }
-                status.textContent += getMessage("allProcessed") + "\n";
-            } catch (error) {
-                status.textContent += getMessage("generalError") + error.message + "\n";
-            }
-        }
-
-        async function unstakeFeedWallets() {
-            const status = document.getElementById("status");
-            status.textContent = getMessage("statusStarting") + "\n";
-
-            const web3 = await initializeWeb3();
-            if (!web3) return;
-
-            const nekoContract = new web3.eth.Contract(NEKO_CONTRACT_ABI, NEKO_CONTRACT_ADDRESS);
-            const privateKeys = document.getElementById("privateKeys").value.trim().split("\n").filter(key => key.length > 0);
-            if (privateKeys.length < 1) {
-                status.textContent += getMessage("noPrivateKeys") + "\n";
-                return;
-            }
-
-            const gasPriceGwei = parseFloat(document.getElementById("gasPrice").value);
-            const gasLimit = parseInt(document.getElementById("gasLimit").value);
-            const processInterval = parseInt(document.getElementById("processInterval").value) * 1000;
-
-            if (isNaN(gasPriceGwei) || gasPriceGwei <= 0) {
-                status.textContent += getMessage("invalidGasPrice") + "\n";
-                return;
-            }
-            if (isNaN(gasLimit) || gasLimit < 21000) {
-                status.textContent += getMessage("invalidGasLimit") + "\n";
-                return;
-            }
-            if (isNaN(processInterval) || processInterval < 1000) {
-                status.textContent += getMessage("invalidInterval") + "\n";
-                return;
-            }
-
-            const gasPriceWei = web3.utils.toWei(gasPriceGwei.toString(), "gwei");
-
-            try {
-                for (const pk of privateKeys) {
-                    const account = web3.eth.accounts.privateKeyToAccount(pk.trim());
-                    web3.eth.accounts.wallet.add(account);
-                    status.textContent += getMessage("processingWallet") + account.address + "\n";
-
-                    const balance = await web3.eth.getBalance(account.address);
-                    const balanceInBONE = web3.utils.fromWei(balance, "ether");
-                    if (balanceInBONE < 0.01) {
-                        status.textContent += getMessage("lowBalanceWarning") + account.address + getMessage("hasLowBalance") + balanceInBONE + getMessage("mayNotCoverGas") + "\n";
-                    }
-
-                    const feedUserInfo = await nekoContract.methods.feedUserInfo(account.address).call();
-
-                    if (!feedUserInfo.isStaked) {
-                        status.textContent += getMessage("notStaked") + account.address + "\n";
-                        continue;
-                    }
-
-                    status.textContent += getMessage("unstakingFeed") + account.address + "...\n";
-                    try {
-                        const tx = await nekoContract.methods.unstakeFeed().send({
-                            from: account.address,
-                            gas: gasLimit,
-                            gasPrice: gasPriceWei
-                        });
-                        status.textContent += getMessage("unstakeSuccess") + tx.transactionHash + "\n";
-                    } catch (error) {
-                        status.textContent += getMessage("errorProcessing") + account.address + getMessage("errorMessage") + error.message + "\n";
-                    }
-                    await new Promise(resolve => setTimeout(resolve, processInterval));
-                }
-                status.textContent += getMessage("allProcessed") + "\n";
-            } catch (error) {
-                status.textContent += getMessage("generalError") + error.message + "\n";
-            }
-        }
-
-        async function checkBalances() {
-            const status = document.getElementById("status");
-            status.textContent = getMessage("statusStarting") + "\n";
-
-            const web3 = await initializeWeb3();
-            if (!web3) return;
-
-            const nekoContract = new web3.eth.Contract(NEKO_CONTRACT_ABI, NEKO_CONTRACT_ADDRESS);
-            const feedContract = new web3.eth.Contract(FEED_CONTRACT_ABI, FEED_CONTRACT_ADDRESS);
-            const privateKeys = document.getElementById("privateKeys").value.trim().split("\n").filter(key => key.length > 0);
-            if (privateKeys.length < 1) {
-                status.textContent += getMessage("noPrivateKeys") + "\n";
-                return;
-            }
-
-            try {
-                for (const pk of privateKeys) {
-                    const account = web3.eth.accounts.privateKeyToAccount(pk.trim());
-                    const nekoBalance = await nekoContract.methods.balanceOf(account.address).call();
-                    const feedBalance = await feedContract.methods.balanceOf(account.address).call();
-                    const feedRewards = await nekoContract.methods.getFeedPendingRewards(account.address).call();
-                    const nekoRewards = await nekoContract.methods.getNekoPendingRewards(account.address).call();
-
-                    status.textContent += getMessage("processingWallet") + account.address + "\n";
-                    status.textContent += getMessage("balance") + web3.utils.fromWei(nekoBalance, "ether") + " NEKO\n";
-                    status.textContent += getMessage("feedBalance") + web3.utils.fromWei(feedBalance, "ether") + " FEED\n";
-                    status.textContent += getMessage("feedPending") + web3.utils.fromWei(feedRewards, "ether") + " NEKO\n";
-                    status.textContent += getMessage("nekoPending") + web3.utils.fromWei(nekoRewards, "ether") + " NEKO\n";
                 }
                 status.textContent += getMessage("allProcessed") + "\n";
             } catch (error) {
