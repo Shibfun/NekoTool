@@ -163,7 +163,9 @@
                 generalError: "Error: ",
                 insufficientAllowance: "Error: Insufficient FEED allowance: ",
                 requiredAllowance: ", required: ",
-                transactionFailed: "Transaction failed with hash: "
+                transactionFailed: "Transaction failed with hash: ",
+                testingTransferFrom: "Testing FEED.transferFrom for ",
+                transferFromFailed: "FEED.transferFrom simulation failed: "
             },
             zh: {
                 title: "NekoToken FEED 领取与质押工具",
@@ -224,7 +226,9 @@
                 generalError: "错误: ",
                 insufficientAllowance: "错误: FEED 授权金额不足: ",
                 requiredAllowance: "，需要: ",
-                transactionFailed: "交易失败，哈希: "
+                transactionFailed: "交易失败，哈希: ",
+                testingTransferFrom: "测试 FEED.transferFrom 为 ",
+                transferFromFailed: "FEED.transferFrom 模拟失败: "
             }
         };
 
@@ -486,6 +490,27 @@
                     const updatedFeedUserInfo = await nekoContract.methods.feedUserInfo(account.address).call();
                     if (updatedFeedUserInfo.isStaked) {
                         status.textContent += getMessage("alreadyStaked") + account.address + "\n";
+                        continue;
+                    }
+
+                    // 测试 FEED.transferFrom
+                    status.textContent += getMessage("testingTransferFrom") + account.address + "...\n";
+                    try {
+                        await feedContract.methods.transferFrom(account.address, NEKO_CONTRACT_ADDRESS, FEED_STAKE_AMOUNT.toString()).call({ from: NEKO_CONTRACT_ADDRESS });
+                    } catch (transferError) {
+                        let revertReason = "Unknown revert reason";
+                        if (transferError.message.includes("revert")) {
+                            try {
+                                const errorData = transferError.message.match(/0x[0-9a-fA-F]+/)?.[0] || "";
+                                if (errorData) {
+                                    const decoded = web3.eth.abi.decodeParameter('string', errorData.slice(10));
+                                    revertReason = decoded;
+                                }
+                            } catch (decodeError) {
+                                revertReason = transferError.message;
+                            }
+                        }
+                        status.textContent += getMessage("transferFromFailed") + revertReason + "\n";
                         continue;
                     }
 
