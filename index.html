@@ -90,25 +90,27 @@
                 stakingNeko: "Staking ",
                 nekoFor: " NEKO for ",
                 approvingFeed: "Approving FEED for ",
+                waitingApproval: "Waiting for approval confirmation for ",
                 stakingFeed: "Staking FEED for ",
                 unstakingFeed: "Unstaking FEED for ",
                 lowBalanceWarning: "Warning: Wallet ",
                 hasLowBalance: " has low BONE balance (",
                 mayNotCoverGas: "), may not cover Gas fees.",
-                insufficientFeedBalance: "Insufficient FEED balance for staking: ",
-                alreadyStaked: "FEED already staked for ",
-                notStaked: "FEED not staked for ",
+                insufficientFeedBalance: "Error: Insufficient FEED balance for staking: ",
+                alreadyStaked: "Error: FEED already staked for ",
+                notStaked: "Error: FEED not staked for ",
                 claimSuccess: "Claim successful! Tx: ",
                 approveSuccess: "Approve successful! Tx: ",
+                approveTimeout: "Error: Approval confirmation timeout for ",
                 stakeSuccess: "Stake successful! Tx: ",
                 unstakeSuccess: "Unstake successful! Tx: ",
                 noRewards: "No FEED rewards to claim for ",
-                insufficientBalance: "Insufficient NEKO balance for staking: ",
+                insufficientBalance: "Error: Insufficient NEKO balance for staking: ",
                 errorProcessing: "Error processing ",
                 errorMessage: ": ",
                 allProcessed: "All wallets processed. Done!",
                 generalError: "Error: ",
-                insufficientAllowance: "Insufficient FEED allowance: ",
+                insufficientAllowance: "Error: Insufficient FEED allowance: ",
                 requiredAllowance: ", required: "
             },
             zh: {
@@ -148,25 +150,27 @@
                 stakingNeko: "为以下地址质押 ",
                 nekoFor: " NEKO ",
                 approvingFeed: "为以下地址批准 FEED ",
+                waitingApproval: "等待批准确认 ",
                 stakingFeed: "为以下地址质押 FEED ",
                 unstakingFeed: "为以下地址取消质押 FEED ",
                 lowBalanceWarning: "警告: 钱包 ",
                 hasLowBalance: " 的 BONE 余额低 (",
                 mayNotCoverGas: ")，可能无法支付 Gas 费用。",
-                insufficientFeedBalance: "FEED 余额不足以质押: ",
-                alreadyStaked: "FEED 已质押 ",
-                notStaked: "FEED 未质押 ",
+                insufficientFeedBalance: "错误: FEED 余额不足以质押: ",
+                alreadyStaked: "错误: FEED 已质押 ",
+                notStaked: "错误: FEED 未质押 ",
                 claimSuccess: "领取成功! 交易: ",
                 approveSuccess: "批准成功! 交易: ",
+                approveTimeout: "错误: 批准确认超时 ",
                 stakeSuccess: "质押成功! 交易: ",
                 unstakeSuccess: "取消质押成功! 交易: ",
                 noRewards: "没有可领取的 FEED 奖励 ",
-                insufficientBalance: "NEKO 余额不足以质押: ",
+                insufficientBalance: "错误: NEKO 余额不足以质押: ",
                 errorProcessing: "处理时出错 ",
                 errorMessage: ": ",
                 allProcessed: "所有钱包处理完成。完成!",
                 generalError: "错误: ",
-                insufficientAllowance: "FEED 授权金额不足: ",
+                insufficientAllowance: "错误: FEED 授权金额不足: ",
                 requiredAllowance: "，需要: "
             }
         };
@@ -358,6 +362,7 @@
                     const balanceInBONE = web3.utils.fromWei(balance, "ether");
                     if (balanceInBONE < 0.01) {
                         status.textContent += getMessage("lowBalanceWarning") + account.address + getMessage("hasLowBalance") + balanceInBONE + getMessage("mayNotCoverGas") + "\n";
+                        continue;
                     }
 
                     const feedBalance = BigInt(await feedContract.methods.balanceOf(account.address).call());
@@ -375,43 +380,66 @@
                         continue;
                     }
 
-                    status.textContent += getMessage("approvingFeed") + account.address + "...\n";
-                    try {
-                        const allowance = BigInt(await feedContract.methods.allowance(account.address, NEKO_CONTRACT_ADDRESS).call());
-                        if (allowance < FEED_STAKE_AMOUNT) {
+                    // 检查当前授权金额
+                    let allowance = BigInt(await feedContract.methods.allowance(account.address, NEKO_CONTRACT_ADDRESS).call());
+                    if (allowance < FEED_STAKE_AMOUNT) {
+                        status.textContent += getMessage("approvingFeed") + account.address + "...\n";
+                        try {
                             const approveTx = await feedContract.methods.approve(NEKO_CONTRACT_ADDRESS, MAX_UINT256).send({
                                 from: account.address,
                                 gas: gasLimit,
                                 gasPrice: gasPriceWei
                             });
                             status.textContent += getMessage("approveSuccess") + approveTx.transactionHash + "\n";
-                            await new Promise(resolve => setTimeout(resolve, 20000)); // 等待 20 秒确保授权生效
+
+                            // 等待授权确认，最多等待 60 秒
+                            status.textContent += getMessage("waitingApproval") + account.address + "...\n";
+                            let attempts = 0;
+                            const maxAttempts = 60; // 60 秒
+                            while (attempts < maxAttempts) {
+                                allowance = BigInt(await feedContract.methods.allowance(account.address, NEKO_CONTRACT_ADDRESS).call());
+                                if (allowance >= FEED_STAKE_AMOUNT) {
+                                    break;
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 1000)); // 每秒检查一次
+                                attempts++;
+                            }
+
+                            if (attempts >= maxAttempts) {
+                                status.textContent += getMessage("approveTimeout") + account.address + "\n";
+                                continue;
+                            }
+                        } catch (error) {
+                            status.textContent += getMessage("errorProcessing") + account.address + getMessage("errorMessage") + error.message + "\n";
+                            continue;
                         }
-                    } catch (error) {
-                        status.textContent += getMessage("errorProcessing") + account.address + getMessage("errorMessage") + error.message + "\n";
-                        continue;
                     }
 
+                    // 再次检查授权金额
                     const updatedAllowance = BigInt(await feedContract.methods.allowance(account.address, NEKO_CONTRACT_ADDRESS).call());
                     if (updatedAllowance < FEED_STAKE_AMOUNT) {
                         status.textContent += getMessage("insufficientAllowance") + web3.utils.fromWei(updatedAllowance.toString(), "ether") + getMessage("requiredAllowance") + web3.utils.fromWei(FEED_STAKE_AMOUNT.toString(), "ether") + " FEED\n";
                         continue;
                     }
 
+                    // 再次检查 FEED 余额
                     const updatedFeedBalance = BigInt(await feedContract.methods.balanceOf(account.address).call());
                     if (updatedFeedBalance < FEED_STAKE_AMOUNT) {
                         status.textContent += getMessage("insufficientFeedBalance") + web3.utils.fromWei(updatedFeedBalance.toString(), "ether") + " FEED\n";
                         continue;
                     }
 
+                    // 再次检查是否已质押
                     const updatedFeedUserInfo = await nekoContract.methods.feedUserInfo(account.address).call();
                     if (updatedFeedUserInfo.isStaked) {
                         status.textContent += getMessage("alreadyStaked") + account.address + "\n";
                         continue;
                     }
 
+                    // 质押 FEED
                     status.textContent += getMessage("stakingFeed") + account.address + "...\n";
                     try {
+                        // 模拟调用以捕获回滚原因
                         await nekoContract.methods.stakeFeed().call({ from: account.address });
                         const stakeTx = await nekoContract.methods.stakeFeed().send({
                             from: account.address,
