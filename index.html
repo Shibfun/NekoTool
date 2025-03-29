@@ -45,54 +45,11 @@
     <script>
         const NEKO_CONTRACT_ADDRESS = "0x63A67329f761517570345eE86f791F74f9DC5461";
         const FEED_CONTRACT_ADDRESS = "0xe9Cb2D7ADC24Fc59FE00D6C0A0669BDF16805Fe0";
-        const MIN_STAKE_UNIT = BigInt(10000 * 10**18); // 10,000 NEKO in wei
-        const FEED_STAKE_AMOUNT = BigInt(10000000000 * 10**18); // 10 billion FEED in wei
+        const MIN_STAKE_UNIT = BigInt(10000 * 10**18);
+        const FEED_STAKE_AMOUNT = BigInt(10000000000 * 10**18);
 
-        const NEKO_CONTRACT_ABI = [
-            {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
-            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"FeedStaked","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"FeedUnstaked","type":"event"},
-            {"anonymous":false,"inputs":[],"name":"MiningEnded","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NekoStaked","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NekoUnstaked","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"string","name":"rewardType","type":"string"}],"name":"RewardsClaimed","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},
-            {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"claimFeedRewards","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[],"name":"claimNekoRewards","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"subtractedValue","type":"uint256"}],"name":"decreaseAllowance","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getFeedPendingRewards","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getFeedStakeInfo","outputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"uint256","name":"lastBlock","type":"uint256"},{"internalType":"uint256","name":"reward","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getNekoPendingRewards","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getNekoStakeInfo","outputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"uint256","name":"lastBlock","type":"uint256"},{"internalType":"uint256","name":"reward","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"addedValue","type":"uint256"}],"name":"increaseAllowance","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"stakeNeko","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[],"name":"stakeFeed","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[],"name":"unstakeFeed","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[],"name":"unstakeNeko","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"feedUserInfo","outputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"bool","name":"isStaked","type":"bool"},{"internalType":"uint256","name":"lastRewardBlock","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nekoUserInfo","outputs":[{"internalType":"uint256","name":"principal","type":"uint256"},{"internalType":"uint256","name":"lastRewardBlock","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"totalFeedStaked","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"totalNekoStaked","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
-        ];
-
-        const FEED_CONTRACT_ABI = [
-            {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
-        ];
+        const NEKO_CONTRACT_ABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"FeedStaked","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"FeedUnstaked","type":"event"},{"anonymous":false,"inputs":[],"name":"MiningEnded","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NekoStaked","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"NekoUnstaked","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"string","name":"rewardType","type":"string"}],"name":"RewardsClaimed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"claimFeedRewards","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"claimNekoRewards","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"subtractedValue","type":"uint256"}],"name":"decreaseAllowance","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getFeedPendingRewards","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getFeedStakeInfo","outputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"uint256","name":"lastBlock","type":"uint256"},{"internalType":"uint256","name":"reward","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getNekoPendingRewards","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getNekoStakeInfo","outputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"uint256","name":"lastBlock","type":"uint256"},{"internalType":"uint256","name":"reward","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"addedValue","type":"uint256"}],"name":"increaseAllowance","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"stakeNeko","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"stakeFeed","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"unstakeFeed","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"unstakeNeko","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"feedUserInfo","outputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"bool","name":"isStaked","type":"bool"},{"internalType":"uint256","name":"lastRewardBlock","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nekoUserInfo","outputs":[{"internalType":"uint256","name":"principal","type":"uint256"},{"internalType":"uint256","name":"lastRewardBlock","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalFeedStaked","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalNekoStaked","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
+        const FEED_CONTRACT_ABI = [{"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}];
 
         const messages = {
             en: {
@@ -210,12 +167,10 @@
         };
 
         function getMessage(key) {
-            const lang = document.getElementById("language").value;
-            return messages[lang][key] || key; // Fallback to key if message not found
+            return messages[document.getElementById("language").value][key] || key;
         }
 
         function updateLanguage() {
-            const lang = document.getElementById("language").value;
             document.getElementById("title").textContent = getMessage("title");
             document.getElementById("labelRpcUrl").childNodes[0].textContent = getMessage("labelRpcUrl");
             document.getElementById("labelChainId").childNodes[0].textContent = getMessage("labelChainId");
@@ -236,10 +191,9 @@
         }
 
         async function initializeWeb3() {
-            const rpcUrl = document.getElementById("rpcUrl").value.trim();
-            const chainId = parseInt(document.getElementById("chainId").value);
-            const expectedChainId = 109;
             const status = document.getElementById("status");
+            const rpcUrl = document.getElementById("rpcUrl").value.trim();
+            const expectedChainId = 109;
 
             if (!rpcUrl) {
                 status.textContent += getMessage("rpcError") + "Please provide a valid Shibarium RPC URL.\n";
@@ -313,7 +267,6 @@
                     status.textContent += getMessage("balance") + web3.utils.fromWei(nekoBalance.toString(), "ether") + " NEKO\n";
                     status.textContent += getMessage("feedPending") + web3.utils.fromWei(feedRewards.toString(), "ether") + " NEKO\n";
 
-                    // Claim FEED rewards
                     if (feedRewards > 0n) {
                         status.textContent += getMessage("claimingFeed") + account.address + "...\n";
                         try {
@@ -323,7 +276,7 @@
                                 gasPrice: gasPriceWei
                             });
                             status.textContent += getMessage("claimSuccess") + tx.transactionHash + "\n";
-                            nekoBalance += feedRewards; // Update balance with claimed rewards
+                            nekoBalance += feedRewards;
                         } catch (error) {
                             status.textContent += getMessage("errorProcessing") + account.address + getMessage("errorMessage") + error.message + "\n";
                         }
@@ -332,9 +285,8 @@
                         status.textContent += getMessage("noRewards") + account.address + "\n";
                     }
 
-                    // Stake NEKO (automatic, integer multiples of 10,000)
                     if (nekoBalance >= MIN_STAKE_UNIT) {
-                        const stakeAmount = (nekoBalance / MIN_STAKE_UNIT) * MIN_STAKE_UNIT; // Floor to nearest 10,000 NEKO
+                        const stakeAmount = (nekoBalance / MIN_STAKE_UNIT) * MIN_STAKE_UNIT;
                         status.textContent += getMessage("stakingNeko") + web3.utils.fromWei(stakeAmount.toString(), "ether") + getMessage("nekoFor") + account.address + "...\n";
                         try {
                             const tx = await nekoContract.methods.stakeNeko(stakeAmount.toString()).send({
@@ -418,7 +370,6 @@
                         continue;
                     }
 
-                    // Approve FEED
                     status.textContent += getMessage("approvingFeed") + account.address + "...\n";
                     try {
                         const approveTx = await feedContract.methods.approve(NEKO_CONTRACT_ADDRESS, FEED_STAKE_AMOUNT.toString()).send({
@@ -427,13 +378,12 @@
                             gasPrice: gasPriceWei
                         });
                         status.textContent += getMessage("approveSuccess") + approveTx.transactionHash + "\n";
-                        await new Promise(resolve => setTimeout(resolve, processInterval));
+                        await new Promise(resolve => setTimeout(resolve, 10000));
                     } catch (error) {
                         status.textContent += getMessage("errorProcessing") + account.address + getMessage("errorMessage") + error.message + "\n";
                         continue;
                     }
 
-                    // Stake FEED
                     status.textContent += getMessage("stakingFeed") + account.address + "...\n";
                     try {
                         const stakeTx = await nekoContract.methods.stakeFeed().send({
@@ -505,7 +455,6 @@
                         continue;
                     }
 
-                    // Unstake FEED
                     status.textContent += getMessage("unstakingFeed") + account.address + "...\n";
                     try {
                         const tx = await nekoContract.methods.unstakeFeed().send({
